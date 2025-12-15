@@ -14,6 +14,9 @@ public class RespawnManager : MonoBehaviour
     }
     public void Respawn()
     {
+        Player.GetComponent<Rigidbody2D>().linearVelocity = Vector2.zero;
+        PlayerMovement.Instance.SetSpeed(0);
+        PlayerMovement.Instance.SetState(PlayerState.Idle); 
         Player.transform.position = Spawn;
     }
     public void UpdateRespawnPoint(Vector3 point)

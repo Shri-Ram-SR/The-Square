@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public GameObject DebugSquare;
+
     #region Variables
     int Direction;
     bool Grounded;
@@ -18,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] float Acceleration = 45;
     [SerializeField] float Deceleration = 65;
     public bool IgnoreMovement;
+    public bool DontMoveMuscle;
 
     [Header("Jumps")]
     [SerializeField] float JumpForce = 40;
@@ -69,6 +72,7 @@ public class PlayerMovement : MonoBehaviour
 
     public static PlayerMovement Instance;
     #endregion
+
     private void Awake()
     {
         if (Instance == null)
@@ -91,8 +95,6 @@ public class PlayerMovement : MonoBehaviour
         FrontCheck();
         CheckGround();
         StateManager();
-
-        //Debug.Log(Speed + " " + rb.linearVelocityX);
 
         //Coyote Timer
         if (Grounded)
@@ -126,6 +128,11 @@ public class PlayerMovement : MonoBehaviour
     }
     void StateManager()
     {
+        if (DontMoveMuscle)
+        {
+            rb.gravityScale = 0;
+            return;
+        }
         //Dash
         if (State == PlayerState.Dash)
         {
@@ -133,21 +140,10 @@ public class PlayerMovement : MonoBehaviour
             rb.linearVelocityX = DashPower * transform.right.x;
             return;
         }
-        //In air
-        if (rb.linearVelocityY > 0)
+        //Slam
+        if (State == PlayerState.Slam)
         {
-            State = PlayerState.InAir;
-            rb.gravityScale = Gravity.Regular;
-            return;
-        }
-        //Moving or Idle
-        if (Grounded)
-        {
-            if (Speed == 0)
-                State = PlayerState.Idle;
-            else
-                State = PlayerState.Moving;
-            rb.gravityScale = Gravity.Regular;
+            rb.gravityScale = Gravity.Slam;
             return;
         }
         //Sliding
@@ -158,17 +154,29 @@ public class PlayerMovement : MonoBehaviour
                 rb.linearVelocityY = -Gravity.Sliding * 3;
             return;
         }
-        //Slam
-        if (State == PlayerState.Slam)
+
+        //Moving or Idle
+        if (Grounded)
         {
-            rb.gravityScale = Gravity.Slam;
+            if (Speed == 0)
+                State = PlayerState.Idle;
+            else
+                State = PlayerState.Moving;
+            rb.gravityScale = Gravity.Regular;
             return;
         }
         //Jump peak
-        if (Mathf.Abs(rb.linearVelocityY) < 2)
+        if (rb.linearVelocityY < 2 && rb.linearVelocityY > 0)
         {
             State = PlayerState.JumpPeak;
             rb.gravityScale = Gravity.JumpPeak;
+            return;
+        }
+        //In air
+        if (rb.linearVelocityY > 2)
+        {
+            State = PlayerState.InAir;
+            rb.gravityScale = Gravity.Regular;
             return;
         }
         //Falling
@@ -186,11 +194,12 @@ public class PlayerMovement : MonoBehaviour
     //Checks if grounded
     void CheckGround()
     {
-        if (Physics2D.OverlapCircle(GO_Ground_Check.transform.position, .1f, Ground_Layer))
+        if (Physics2D.OverlapCircle(GO_Ground_Check.transform.position, .2f, Ground_Layer))
         {
             if (State == PlayerState.Slam)
             {
                 PC.Slam();
+                State = PlayerState.Idle;
             }
             Grounded = true;
             //Checks if jump has been presses just before landing
@@ -216,7 +225,6 @@ public class PlayerMovement : MonoBehaviour
             }
             else if (HasStoneGrip)
             {
-
                 State = PlayerState.Sliding;
                 WallCoyoteTimer = WallCoyoteTime;
             }
@@ -227,6 +235,7 @@ public class PlayerMovement : MonoBehaviour
             State = PlayerState.Falling;
         }
     }
+
 
     #region Movement
     public void JumpAction(bool b)
@@ -300,7 +309,7 @@ public class PlayerMovement : MonoBehaviour
     //Handles accelearation and decelearation and applying of speed
     void ChangeSpeed()
     {
-        if (IgnoreMovement) return;
+        if (IgnoreMovement || DontMoveMuscle) return;
 
         int d = Direction;
         if (Direction == 0)
@@ -335,8 +344,9 @@ public class PlayerMovement : MonoBehaviour
     #region Abilities
     public void Slam()
     {
-        if (!HasSlam)
+        if (!HasSlam || DontMoveMuscle) 
             return;
+
         if (SlamTimer == 0)
         {
             //Negates all movement the player had
@@ -350,8 +360,9 @@ public class PlayerMovement : MonoBehaviour
     }
     public void Elevate()
     {
-        if (!HasElevate)
+        if (!HasElevate || DontMoveMuscle)
             return;
+
         if (Grounded)
         {
             rb.linearVelocityY = ElevatePower;
@@ -359,12 +370,17 @@ public class PlayerMovement : MonoBehaviour
     }
     public void VinePull()
     {
-        if (!HasVinePull) return;
+        if (!HasVinePull || DontMoveMuscle) 
+            return;
+
         Debug.Log("Vine pull");
     }
     public void Dash()
     {
-        if (HasDash && DashCoolDownTimer <= 0)
+        if(!HasDash  || DontMoveMuscle) 
+            return;
+
+        if (DashCoolDownTimer <= 0)
         {
             Ignoremovement(DashDurTime);
             rb.linearVelocity = Vector2.zero;
@@ -377,6 +393,39 @@ public class PlayerMovement : MonoBehaviour
     {
         State = PlayerState.Idle;
         rb.linearVelocityX = 0;
+        rb.linearVelocityY = -1;
+    }
+    #endregion
+
+
+    #region External Factors
+    public void StartSpin()
+    {
+        DontMoveMuscle = true;
+        rb.gravityScale = 0;
+        rb.linearVelocity = Vector2.zero;
+        Speed = 0;
+        GetComponent<SpriteRenderer>().enabled = false;
+    }
+    public IEnumerator EndSpin(Vector2 launch, float freezetime)
+    {
+        GetComponent<SpriteRenderer>().enabled = true;
+        rb.linearVelocity = launch;
+        Speed = launch.x;
+
+        yield return new WaitForSeconds(freezetime);
+
+        DontMoveMuscle = false;
+        State = PlayerState.InAir;
+
+        //Resets any rotation caused by the swinger
+        Vector3 q = transform.rotation.eulerAngles;
+        q.z = 0;
+        transform.rotation = Quaternion.Euler(q);
+    }
+    public void SetSpeed(float s)
+    {
+        Speed = s;
     }
     #endregion
 
@@ -406,7 +455,8 @@ public class PlayerMovement : MonoBehaviour
     {
         int d = Direction;
         Direction = (int)context.ReadValue<float>();
-        if (d != Direction && Grounded) Speed = 0;
+        if (d != Direction && Direction - Speed > Mathf.Abs(Speed))
+            Speed = 0;
     }
     public PlayerState GetState()
     {
@@ -438,7 +488,6 @@ public enum PlayerState
     Slam,
     Sliding,
     Dash,
-    Zero
 }
 [System.Serializable]
 class GravityValues
@@ -449,5 +498,4 @@ class GravityValues
     public float Sliding;
     public float Slam;
     public float Dash;
-    public float Zero;
 }

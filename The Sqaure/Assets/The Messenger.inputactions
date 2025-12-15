@@ -34,9 +34,18 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Elevate",
+                    "name": "Dash",
                     "type": "Button",
                     "id": "f72ca9c0-ca6e-4f0a-ae5e-305c73d828b1",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Elevate",
+                    "type": "Button",
+                    "id": "a855c02c-3d9f-4fd9-b6cf-c288ab4e6445",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -86,6 +95,17 @@
                     "name": "",
                     "id": "73616060-aa70-426f-a07f-7742337cf610",
                     "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Dash",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "414b0cc1-7d21-4c75-a2a8-2944bf22980b",
+                    "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
