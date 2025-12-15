@@ -25,6 +25,8 @@ public class PlayerMovement : MonoBehaviour
     [Header("Coyote jump")]
     [SerializeField] float CoyoteTime = 0.1f;
     [SerializeField] float CoyoteTimer;
+    [SerializeField] float WallCoyoteTime = 0.1f;
+    [SerializeField] float WallCoyoteTimer;
 
     [Header("Buffer jump")]
     [SerializeField] float BufferTime = 0.1f;
@@ -89,11 +91,20 @@ public class PlayerMovement : MonoBehaviour
         FrontCheck();
         CheckGround();
         StateManager();
+
+        //Debug.Log(Speed + " " + rb.linearVelocityX);
+
         //Coyote Timer
         if (Grounded)
             CoyoteTimer = CoyoteTime;
         else
             CoyoteTimer -= Time.deltaTime;
+
+        //Wall Coyote Timer
+        if (WallCoyoteTimer > 0)
+            WallCoyoteTimer -= Time.deltaTime;
+        else
+            WallCoyoteTimer = 0;
 
         //Buffer Timer;
         if (BufferTimer > 0)
@@ -195,9 +206,7 @@ public class PlayerMovement : MonoBehaviour
     void FrontCheck()
     {
         if (Grounded) return;
-        //Sets speed to 0 and sets up sliding
-        if (Physics2D.OverlapBox(GO_Front_Check.transform.position, new Vector2(.2f, .2f), 0, Ground_Wall_Layer))
-            Speed = 0;
+
         if (Physics2D.OverlapBox(GO_Front_Check.transform.position, new Vector2(.2f, .2f), 0, Ground_Layer))
         {
             //When jumps while sliding
@@ -207,8 +216,9 @@ public class PlayerMovement : MonoBehaviour
             }
             else if (HasStoneGrip)
             {
+
                 State = PlayerState.Sliding;
-                CoyoteTimer = CoyoteTime;
+                WallCoyoteTimer = WallCoyoteTime;
             }
         }
         //Checks if fallen off the wall
@@ -233,7 +243,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         //Checks if original jumps is still viable due to coyote time
-        if (CoyoteTimer > 0 || State == PlayerState.Sliding)
+        if (CoyoteTimer > 0 || State == PlayerState.Sliding || WallCoyoteTimer > 0)
         {
             jump = true;
         }
@@ -245,11 +255,18 @@ public class PlayerMovement : MonoBehaviour
 
         if (jump)
         {
-            if (State == PlayerState.Sliding)
+            if (State == PlayerState.Sliding || WallCoyoteTimer > 0)
             {
-                rb.linearVelocityY = JumpForce * 1.2f;
-                rb.linearVelocityX += -transform.right.x * MaxAirSpeed;
                 Ignoremovement(.2f);
+                rb.linearVelocityY = JumpForce * 1.2f;
+                if (!Grounded)
+                {
+                    if (State != PlayerState.Sliding)
+                        rb.linearVelocityX = transform.right.x * 25;
+                    else
+                        rb.linearVelocityX = -transform.right.x * 25;
+                    Speed = rb.linearVelocityX;
+                }
             }
             else
                 rb.linearVelocityY = JumpForce;
@@ -358,7 +375,6 @@ public class PlayerMovement : MonoBehaviour
     }
     void StopDash()
     {
-        Debug.Log("Stop dash");
         State = PlayerState.Idle;
         rb.linearVelocityX = 0;
     }
@@ -390,7 +406,7 @@ public class PlayerMovement : MonoBehaviour
     {
         int d = Direction;
         Direction = (int)context.ReadValue<float>();
-        if (d != Direction) Speed = 0;
+        if (d != Direction && Grounded) Speed = 0;
     }
     public PlayerState GetState()
     {
