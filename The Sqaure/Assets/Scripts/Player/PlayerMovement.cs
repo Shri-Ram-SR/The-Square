@@ -17,7 +17,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] float MaxAirSpeed = 20;
     [SerializeField] float Acceleration = 45;
     [SerializeField] float Deceleration = 65;
-    bool IgnoreMovement;
+    public bool IgnoreMovement;
 
     [Header("Jumps")]
     [SerializeField] float JumpForce = 40;
@@ -94,7 +94,7 @@ public class PlayerMovement : MonoBehaviour
             CoyoteTimer = CoyoteTime;
         else
             CoyoteTimer -= Time.deltaTime;
-        
+
         //Buffer Timer;
         if (BufferTimer > 0)
             BufferTimer -= Time.deltaTime;
@@ -172,43 +172,6 @@ public class PlayerMovement : MonoBehaviour
         Debug.LogWarning("No state found");
         return;
     }
-    public void JumpAction(bool b)
-    {
-        bool jump = false;
-        if (State == PlayerState.Slam)
-            return;
-        //Variable Jump height
-        if (!b)
-        {
-            if (State == PlayerState.InAir)
-                rb.linearVelocityY /= 2;
-            return;
-        }
-
-        //Checks if original jumps is still viable due to coyote time
-        if (CoyoteTimer > 0 || State == PlayerState.Sliding)
-        {
-            jump = true;
-        }
-        //Buffer jump initiated
-        else
-        {
-            BufferTimer = BufferTime;
-        }
-
-        if (jump)
-        {
-            if (State == PlayerState.Sliding)
-            {
-                IgnoreMovement = true;
-                rb.linearVelocityY = JumpForce * 1.2f;
-                rb.linearVelocityX += -transform.right.x * 25;
-                Invoke("SetIgnoreMovement", .2f);
-            }
-            else
-                rb.linearVelocityY = JumpForce;
-        }
-    }
     //Checks if grounded
     void CheckGround()
     {
@@ -256,6 +219,42 @@ public class PlayerMovement : MonoBehaviour
     }
 
     #region Movement
+    public void JumpAction(bool b)
+    {
+        bool jump = false;
+        if (State == PlayerState.Slam)
+            return;
+        //Variable Jump height
+        if (!b)
+        {
+            if (State == PlayerState.InAir)
+                rb.linearVelocityY /= 2;
+            return;
+        }
+
+        //Checks if original jumps is still viable due to coyote time
+        if (CoyoteTimer > 0 || State == PlayerState.Sliding)
+        {
+            jump = true;
+        }
+        //Buffer jump initiated
+        else
+        {
+            BufferTimer = BufferTime;
+        }
+
+        if (jump)
+        {
+            if (State == PlayerState.Sliding)
+            {
+                rb.linearVelocityY = JumpForce * 1.2f;
+                rb.linearVelocityX += -transform.right.x * MaxAirSpeed;
+                Ignoremovement(.2f);
+            }
+            else
+                rb.linearVelocityY = JumpForce;
+        }
+    }
     //Accelearate
     void Accelearation()
     {
@@ -287,7 +286,7 @@ public class PlayerMovement : MonoBehaviour
         if (IgnoreMovement) return;
 
         int d = Direction;
-        if(Direction == 0)
+        if (Direction == 0)
             Direction = GetJoystickValue.Instance.GetDirection();
 
         //Detects if changing direction
@@ -305,7 +304,7 @@ public class PlayerMovement : MonoBehaviour
             if (Speed != 0)
                 Decelearation();
             //If there is no input but has speed
-            else if(rb.linearVelocityX != 0)
+            else if (rb.linearVelocityX != 0)
             {
                 Speed = rb.linearVelocityX;
                 Decelearation();
@@ -336,7 +335,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!HasElevate)
             return;
-        if(Grounded)
+        if (Grounded)
         {
             rb.linearVelocityY = ElevatePower;
         }
@@ -348,8 +347,9 @@ public class PlayerMovement : MonoBehaviour
     }
     public void Dash()
     {
-        if(HasDash && DashCoolDownTimer <= 0)
+        if (HasDash && DashCoolDownTimer <= 0)
         {
+            Ignoremovement(DashDurTime);
             rb.linearVelocity = Vector2.zero;
             State = PlayerState.Dash;
             DashCoolDownTimer = DashCoolDownTime;
@@ -358,7 +358,9 @@ public class PlayerMovement : MonoBehaviour
     }
     void StopDash()
     {
+        Debug.Log("Stop dash");
         State = PlayerState.Idle;
+        rb.linearVelocityX = 0;
     }
     #endregion
 
@@ -368,12 +370,17 @@ public class PlayerMovement : MonoBehaviour
     {
         if (context.started)
             JumpAction(true);
-        else if(context.canceled)
+        else if (context.canceled)
             JumpAction(false);
     }
     void SetIgnoreMovement()
     {
         IgnoreMovement = false;
+    }
+    public void Ignoremovement(float f)
+    {
+        IgnoreMovement = true;
+        Invoke("SetIgnoreMovement", f);
     }
     public int GetDir()
     {
@@ -388,6 +395,14 @@ public class PlayerMovement : MonoBehaviour
     public PlayerState GetState()
     {
         return State;
+    }
+    public void SetState(PlayerState state)
+    {
+        State = state;
+    }
+    public void SetVelocity(Vector2 v)
+    {
+        rb.linearVelocity = v;
     }
     private void OnDrawGizmos()
     {
@@ -406,7 +421,8 @@ public enum PlayerState
     Falling,
     Slam,
     Sliding,
-    Dash
+    Dash,
+    Zero
 }
 [System.Serializable]
 class GravityValues
@@ -417,4 +433,5 @@ class GravityValues
     public float Sliding;
     public float Slam;
     public float Dash;
+    public float Zero;
 }
