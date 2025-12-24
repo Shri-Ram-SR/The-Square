@@ -1,12 +1,8 @@
 using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class BeizerFollow : MonoBehaviour
+public class BeizerFollow : Follow
 {
-    [SerializeField] List<Transform> Routes;
-    [SerializeField] float Speed;
     [SerializeField] bool Loop = false;
     int RouteToGo;
     float Tparam;
@@ -21,12 +17,6 @@ public class BeizerFollow : MonoBehaviour
         SpeedModifier = 0.05f;
         CoroutineAllowed = true;
     }
-    public void Setup(List<Transform> routes,float s)
-    {
-        Routes = routes;
-        Speed = s;
-    }
-
     private void Update()
     {
         if (CoroutineAllowed)

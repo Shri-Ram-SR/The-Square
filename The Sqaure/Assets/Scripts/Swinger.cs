@@ -1,7 +1,7 @@
 using UnityEngine;
 using DG.Tweening;
 using System.Collections;
-public class Swinger : MonoBehaviour
+public class Swinger : ResetWhenRespawn
 {
     [SerializeField] Transform SpinPoint;
     [SerializeField] float SpinDuration;
@@ -23,7 +23,7 @@ public class Swinger : MonoBehaviour
         StartCoroutine(PlayerMovement.Instance.EndSpin(transform.right * LaunchPower, FreezeTime));
     }
     private void OnTriggerEnter2D(Collider2D collision)
-    {
+    { 
         if (collision.CompareTag("Player"))
         {
             Player = collision.gameObject;

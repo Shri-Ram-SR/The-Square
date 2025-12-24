@@ -9,6 +9,7 @@ public class PlatformGenerator : MonoBehaviour
     [SerializeField] float LifeTime;
     [SerializeField] List<Transform> Routes;
     [SerializeField] GameObject Platform;
+    [SerializeField] bool Beizer;
     void Start()
     {
         StartCoroutine(Generate());
@@ -17,7 +18,11 @@ public class PlatformGenerator : MonoBehaviour
     IEnumerator Generate()
     {
         GameObject p = Instantiate(Platform);
-        p.GetComponent<BeizerFollow>().Setup(Routes, Speed);
+        if (Beizer)
+            p.AddComponent<BeizerFollow>().Setup(Routes,Speed);
+        else
+            p.AddComponent<LinearFollow>().Setup(Routes,Speed);
+
         Destroy(p, LifeTime);
         yield return new WaitForSeconds(WaitTime);
         StartCoroutine(Generate());

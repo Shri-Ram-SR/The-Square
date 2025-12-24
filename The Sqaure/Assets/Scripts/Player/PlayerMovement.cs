@@ -14,7 +14,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] GravityValues Gravity;
     [SerializeField] PlayerState State;
     [Header("Moving")]
-    public float Speed;
+    [SerializeField] float Speed;
+    public float ExtraSpeed;
     [SerializeField] float MaxGroundSpeed = 12;
     [SerializeField] float MaxAirSpeed = 20;
     [SerializeField] float Acceleration = 45;
@@ -50,8 +51,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] float DashCoolDownTime;
     [SerializeField] float DashCoolDownTimer;
     [SerializeField] float DashDurTime;
-    [SerializeField] float DashPower;
-
+    [SerializeField] float DashPower;   
+    [SerializeField] bool TouchedGround;
 
     [Header("Slam")]
     [SerializeField] float SlamCoolDownTime = 1;
@@ -180,7 +181,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
         //Falling
-        if (rb.linearVelocityY < 0)
+        if (rb.linearVelocityY <= 0)
         {
             State = PlayerState.Falling;
             rb.gravityScale = Gravity.Falling;
@@ -188,7 +189,7 @@ public class PlayerMovement : MonoBehaviour
                 rb.linearVelocityY = -Gravity.Falling * 3;
             return;
         }
-        Debug.LogWarning("No state found");
+        Debug.LogWarning("No state found " + Grounded + " " + Speed + " " + rb.linearVelocityY);
         return;
     }
     //Checks if grounded
@@ -196,6 +197,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Physics2D.OverlapCircle(GO_Ground_Check.transform.position, .2f, Ground_Layer))
         {
+            if (!TouchedGround)
+                TouchedGround = true;
             if (State == PlayerState.Slam)
             {
                 PC.Slam();
@@ -228,6 +231,8 @@ public class PlayerMovement : MonoBehaviour
                 State = PlayerState.Sliding;
                 WallCoyoteTimer = WallCoyoteTime;
             }
+            if (!TouchedGround)
+                TouchedGround = true;
         }
         //Checks if fallen off the wall
         else if (State == PlayerState.Sliding)
@@ -336,7 +341,7 @@ public class PlayerMovement : MonoBehaviour
                 Decelearation();
             }
         }
-        rb.linearVelocityX = Speed;
+        rb.linearVelocityX = Speed + ExtraSpeed;
     }
     #endregion
 
@@ -344,7 +349,7 @@ public class PlayerMovement : MonoBehaviour
     #region Abilities
     public void Slam()
     {
-        if (!HasSlam || DontMoveMuscle) 
+        if (!HasSlam || DontMoveMuscle || State == PlayerState.Dash) 
             return;
 
         if (SlamTimer == 0)
@@ -377,13 +382,15 @@ public class PlayerMovement : MonoBehaviour
     }
     public void Dash()
     {
-        if(!HasDash  || DontMoveMuscle) 
+        if (!HasDash || DontMoveMuscle || State == PlayerState.Slam) 
             return;
 
-        if (DashCoolDownTimer <= 0)
+        if (DashCoolDownTimer <= 0 && TouchedGround)
         {
+            TouchedGround = false;
             Ignoremovement(DashDurTime);
             rb.linearVelocity = Vector2.zero;
+            Speed = 0;
             State = PlayerState.Dash;
             DashCoolDownTimer = DashCoolDownTime;
             Invoke("StopDash", DashDurTime);
@@ -426,6 +433,10 @@ public class PlayerMovement : MonoBehaviour
     public void SetSpeed(float s)
     {
         Speed = s;
+    }
+    public void SetExtraSpeed(float s)
+    {
+        ExtraSpeed = s;
     }
     #endregion
 

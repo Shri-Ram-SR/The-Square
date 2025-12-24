@@ -1,9 +1,12 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 public class RespawnManager : MonoBehaviour
 {
     [SerializeField] GameObject Player;
     [SerializeField] Vector3 Spawn;
+
+    public static UnityEvent Respawned = new UnityEvent();
     public static RespawnManager Instance;
     private void Awake()
     {
@@ -18,6 +21,7 @@ public class RespawnManager : MonoBehaviour
         PlayerMovement.Instance.SetSpeed(0);
         PlayerMovement.Instance.SetState(PlayerState.Idle); 
         Player.transform.position = Spawn;
+        Respawned.Invoke();
     }
     public void UpdateRespawnPoint(Vector3 point)
     {

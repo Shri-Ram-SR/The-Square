@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class PlayerHealthSystem : MonoBehaviour
@@ -40,11 +41,11 @@ public class PlayerHealthSystem : MonoBehaviour
     public void SubHealth(int i)
     {
         CurHealth -= i;
+        if(CurHealth <= 0)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            return;
+        }
         UpdateUI();
-    }
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Enemy"))
-            SubHealth(1);
     }
 }
